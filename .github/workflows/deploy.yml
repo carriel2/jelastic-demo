@@ -14,7 +14,7 @@ jobs:
       uses: actions/checkout@v4
 
     # 2. DockerHub Login (Using Github Secrets for security)
-    - name: Login to Docker Hub
+    - name: Docker Hub Login
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
@@ -32,11 +32,11 @@ jobs:
           ${{ secrets.DOCKER_USERNAME }}/jelastic-demo:${{ github.sha }}
 
     # 4. Warns SaveinCloud about the new image and triggers redeploy via Jelastic API
-    - name: Deploy to SaveinCloud
+    - name: Saveincloud Deploy
       run: |
-        echo "Iniciando Redeploy..."
+        echo "Starting Redeploy..."
         
-        # Armazena a resposta em uma variável
+        # Store the response from Jelastic API
         RESPONSE=$(curl -s -X POST "https://app.paas.saveincloud.net.br/1.0/environment/control/rest/redeploycontainersbygroup" \
           -d "session=${{ secrets.JELASTIC_TOKEN }}" \
           -d "envName=${{ secrets.ENV_NAME }}" \
@@ -44,12 +44,12 @@ jobs:
           -d "tag=latest" \
           -d "useExistingVolumes=true")
         
-        echo "Resposta da Plataforma: $RESPONSE"
+        echo "Jelastic Response: $RESPONSE"
         
-        # Verifica se tem a palavra "error" ou se "result" é diferente de 0
-        if [[ "$RESPONSE" == *"error"* ]] || [[ "$RESPONSE" != *"\"result\":0"* ]]; then
-          echo "❌ ERRO NO DEPLOY! O ambiente não foi atualizado. "envName=${{ secrets.ENV_NAME }}""
+        # Check if the “result” is different from 0 (which indicates failure)
+        if [[ "$RESPONSE" != *"\"result\":0"* ]]; then
+          echo "Failed, Verify the logs."
           exit 1
         else
-          echo "✅ Deploy realizado com sucesso!"
+          echo  Sucess, Redeploy triggered successfully."
         fi

@@ -7,7 +7,7 @@ logo: https://raw.githubusercontent.com/jelastic-jps/connectors/master/images/do
 
 baseUrl: https://raw.githubusercontent.com/carriel2/jelastic-demo/main
 
-# Definição dos Nós (A Infraestrutura)
+# Definition of Nodes 
 nodes:
   - cloudlets: 16
     nodeType: docker
@@ -15,7 +15,7 @@ nodes:
     flexibleCloudlets: 32
     nodeGroup: cp
     displayName: App Node (Docker)
-    # A mágica: Deploy automático da sua imagem
+    # Automatic image deployment
     docker:
       image: carriel2/jelastic-demo:v1
       env:
@@ -24,11 +24,11 @@ nodes:
       
 ssl: true
 
-# Eventos e Mensagens após a instalação
+# Events and Messages after installation
 onInstall:
-  - log: "Ambiente criado com sucesso! Iniciando configuração..."
+  - log: "Environment successfully created! Starting configuration..."
   
 success: |
-  Ambiente criado com sucesso!
-  Sua aplicação está rodando em: **${env.url}**
-  Endpoint de Métricas: **${env.url}metrics**
+  Environment successfully created
+  Your application is running on: **${env.url}**
+  Metrics Endpoint: **${env.url}metrics**
