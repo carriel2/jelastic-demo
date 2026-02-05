@@ -48,7 +48,7 @@ jobs:
         
         # Verifica se tem a palavra "error" ou se "result" é diferente de 0
         if [[ "$RESPONSE" == *"error"* ]] || [[ "$RESPONSE" != *"\"result\":0"* ]]; then
-          echo "❌ ERRO NO DEPLOY! O ambiente não foi atualizado."
+          echo "❌ ERRO NO DEPLOY! O ambiente não foi atualizado. "envName=${{ secrets.ENV_NAME }}""
           exit 1
         else
           echo "✅ Deploy realizado com sucesso!"
