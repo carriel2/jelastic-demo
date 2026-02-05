@@ -45,11 +45,14 @@ jobs:
           -d "useExistingVolumes=true")
         
         echo "Jelastic Response: $RESPONSE"
+
+        # Parse the result code from the response using jq
+        RESULT_CODE=$(echo "$RESPONSE" | jq '.result')
         
         # Check if the “result” is different from 0 (which indicates failure)
-        if [[ "$RESPONSE" != *"\"result\":0"* ]]; then
-          echo "Failed, Verify the logs."
+        if [ "$RESULT_CODE" != "0" ]; then
+          echo "Error, API returned $RESULT_CODE"
           exit 1
         else
-          echo  Sucess, Redeploy triggered successfully."
+          echo "Sucess: Deployment completed (Code 0))"
         fi
