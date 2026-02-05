@@ -22,7 +22,7 @@ async def _startup():
 @app.get("/")
 def read_root():
     """Root endpoint returning a welcome message."""
-    return {"message": "Testing CI/CD", "node": os.getenv("HOSTNAME", "unknown")}
+    return {"message": "Testing CI/CD!", "node": os.getenv("HOSTNAME", "unknown")}
 
 @app.get("/health")
 def health_chgeck():
