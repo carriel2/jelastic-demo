@@ -22,7 +22,7 @@ async def _startup():
 @app.get("/")
 def read_root():
     """Root endpoint returning a welcome message."""
-    return {"message": "Welcome to the Jelastic Observability Demo!", "node": os.getenv("HOSTNAME", "unknown")}
+    return {"message": "Testando CI/CD", "node": os.getenv("HOSTNAME", "unknown")}
 
 @app.get("/health")
 def health_chgeck():
