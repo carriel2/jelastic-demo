@@ -1,5 +1,5 @@
 # Step 1: Builder (Compiles and installs dependencies) 
-FROM python:3.9-slim AS builder
+FROM python:3.9-slim-bullseye AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 #  Step 2: Runner (Final lightweight image)
-FROM python:3.9-slim
+FROM python:3.9-slim-bullseye
 
 # Set working directory
 WORKDIR /app
