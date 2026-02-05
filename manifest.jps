@@ -1,0 +1,34 @@
+type: install
+version: 1.7
+id: jelastic-observability-demo
+name: Observability & Automation Demo
+homepage: https://github.com/carriel2/jelastic-demo
+logo: https://raw.githubusercontent.com/jelastic-jps/connectors/master/images/docker-logo.png
+
+baseUrl: https://raw.githubusercontent.com/carriel2/jelastic-demo/main
+
+# Definição dos Nós (A Infraestrutura)
+nodes:
+  - cloudlets: 16
+    nodeType: docker
+    count: 1
+    flexibleCloudlets: 32
+    nodeGroup: cp
+    displayName: App Node (Docker)
+    # A mágica: Deploy automático da sua imagem
+    docker:
+      image: carriel2/jelastic-demo:v1
+      env:
+        SERVER_PORT: 8000
+      links: []
+      
+ssl: true
+
+# Eventos e Mensagens após a instalação
+onInstall:
+  - log: "Ambiente criado com sucesso! Iniciando configuração..."
+  
+success: |
+  Ambiente criado com sucesso!
+  Sua aplicação está rodando em: **${env.url}**
+  Endpoint de Métricas: **${env.url}metrics**
