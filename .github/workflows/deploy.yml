@@ -34,12 +34,22 @@ jobs:
     # 4. Warns SaveinCloud about the new image and triggers redeploy via Jelastic API
     - name: Deploy to SaveinCloud
       run: |
-        echo "Iniciando Redeploy na Jelastic..."
+        echo "Iniciando Redeploy..."
         
-        # Chama a API da Jelastic para redeployar pelo Grupo de Nós (cp = compute/app)
-        curl -X POST "https://app.paas.saveincloud.net.br/1.0/environment/control/rest/redeploycontainersbygroup" \
+        # Armazena a resposta em uma variável
+        RESPONSE=$(curl -s -X POST "https://app.paas.saveincloud.net.br/1.0/environment/control/rest/redeploycontainersbygroup" \
           -d "session=${{ secrets.JELASTIC_TOKEN }}" \
           -d "envName=${{ secrets.ENV_NAME }}" \
           -d "nodeGroup=cp" \
           -d "tag=latest" \
-          -d "useExistingVolumes=true"
+          -d "useExistingVolumes=true")
+        
+        echo "Resposta da Plataforma: $RESPONSE"
+        
+        # Verifica se tem a palavra "error" ou se "result" é diferente de 0
+        if [[ "$RESPONSE" == *"error"* ]] || [[ "$RESPONSE" != *"\"result\":0"* ]]; then
+          echo "❌ ERRO NO DEPLOY! O ambiente não foi atualizado."
+          exit 1
+        else
+          echo "✅ Deploy realizado com sucesso!"
+        fi
