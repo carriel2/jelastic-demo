@@ -12,6 +12,9 @@ nodes:
     flexibleCloudlets: 64
     nodeGroup: cp
     displayName: App & Observability Stack
+
+    docker:
+      image: jelastic/docker-ce:latest
     
     # Volumes for persistence
     volumes:
