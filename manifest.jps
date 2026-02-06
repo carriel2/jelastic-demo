@@ -27,19 +27,24 @@ onInstall:
 
 actions:
   prepareEnvironment:
+    user: root
     cmd [cp]: |
-      # Ensure it is in the correct folder and delete it if it already exists.
+      # Ensure that curl is already installed (jelastic/docker-ce uses CentOS).
+      yum install -y curl
+      
+      # Ensure you are in the correct folder, delete it if it already exists, and ensure you have the correct permissions.
       rm -rf /app/repo
       mkdir -p /app/repo
+      chmod 777 /app/reto
       
       # Download the files from your GitHub (Compose + Configs)
+      echo "Downloading GitHub Archives"
       curl -fsSL ${baseUrl}/docker-compose.yml -o /app/repo/docker-compose.yml
       curl -fsSL ${baseUrl}/prometheus.yml -o /app/repo/prometheus.yml
       
   startStack:
     cmd [cp]: |
       cd /app/repo
-      
       # Go up the stack (the -d is to run in the background)
       docker-compose up -d
       
