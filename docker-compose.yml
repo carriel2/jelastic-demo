@@ -1,4 +1,4 @@
-version: "3.3"
+version: '3.3'
 
 services:
   app:
@@ -7,23 +7,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DB_HOST=postgres
-      - DB_NAME=app_db
-      - DB_USER=user
-      - DB_PASS=password
-    depends_on:
-      - postgres
-
-  postgres:
-    image: postgres:16.2
-    restart: always
-    container_name: postgresql
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=admin#123!
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - DB_HOST=sqldb
+      - DB_NAME=postgres
+      - DB_USER=webadmin
+      - DB_PASS=db_password_123
 
   prometheus:
     image: prom/prometheus:latest
@@ -31,7 +18,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
+      - '--config.file=/etc/prometheus/prometheus.yml'
 
   grafana:
     image: grafana/grafana:latest
@@ -46,5 +33,4 @@ services:
       - grafana_data:/var/lib/grafana
 
 volumes:
-  postgres_data:
   grafana_data:
