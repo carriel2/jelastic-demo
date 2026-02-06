@@ -1,34 +1,49 @@
 type: install
 version: 1.7
-id: jelastic-observability-demo
-name: Observability & Automation Demo
+id: jelastic-observability-stack
+name: Full Stack Observability
 homepage: https://github.com/carriel2/jelastic-demo
-logo: https://raw.githubusercontent.com/jelastic-jps/connectors/master/images/docker-logo.png
-
 baseUrl: https://raw.githubusercontent.com/carriel2/jelastic-demo/main
 
-# Definition of Nodes 
 nodes:
-  - cloudlets: 16
+  - cloudlets: 32
     nodeType: docker
     count: 1
-    flexibleCloudlets: 32
+    flexibleCloudlets: 64
     nodeGroup: cp
-    displayName: App Node (Docker)
-    # Automatic image deployment
-    docker:
-      image: carriel2/jelastic-demo:v1
-      env:
-        SERVER_PORT: 8000
-      links: []
-      
-ssl: true
+    displayName: App & Observability Stack
+    
+    # Volumes for persistence
+    volumes:
+      - /app
 
-# Events and Messages after installation
+# Hooks to install Docker Compose and run
 onInstall:
-  - log: "Environment successfully created! Starting configuration..."
-  
+  - prepareEnvironment
+  - startStack
+
+actions:
+  prepareEnvironment:
+    cmd [cp]: |
+      # Ensure it is in the correct folder and delete it if it already exists.
+      rm -rf /app/repo
+      mkdir -p /app/repo
+      
+      # Download the files from your GitHub (Compose + Configs)
+      curl -fsSL ${baseUrl}/docker-compose.yml -o /app/repo/docker-compose.yml
+      curl -fsSL ${baseUrl}/prometheus.yml -o /app/repo/prometheus.yml
+      
+  startStack:
+    cmd [cp]: |
+      cd /app/repo
+      
+      # Go up the stack (the -d is to run in the background)
+      docker-compose up -d
+      
 success: |
-  Environment successfully created
-  Your application is running on: **${env.url}**
-  Metrics Endpoint: **${env.url}metrics**
+  Environment Provisioned.
+  
+  **Accesses:**
+  - API: [http://${env.domain}:8000](http://${env.domain}:8000)
+  - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
+  - Prometheus: [http://${env.domain}:9090](http://${env.domain}:9090)
