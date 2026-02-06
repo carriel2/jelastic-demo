@@ -3,7 +3,6 @@ version: 1.7
 id: jelastic-observability-stack
 name: Full Stack Observability
 homepage: https://github.com/carriel2/jelastic-demo
-baseUrl: https://raw.githubusercontent.com/carriel2/jelastic-demo/main
 
 nodes:
   - cloudlets: 32
@@ -19,27 +18,15 @@ nodes:
       - /var/run/docker.sock
 
 onInstall:
-  - prepareEnvironment
-  - startStack
+  - deployStack
 
 actions:
-  prepareEnvironment:
+  deployStack:
     user: root
-    cmd [cp]: |
-      yum install -y curl
-      rm -rf /app/repo
-      mkdir -p /app/repo
-      curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/docker-compose.yml -o /app/repo/docker-compose.yml
-      curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/prometheus.yml -o /app/repo/prometheus.yml
-
-  startStack:
-    user: root
-    cmd [cp]: |
-      cd /app/repo
-      docker-compose up -d
+    cmd [cp]: yum install -y git && rm -rf /app/repo && git clone https://github.com/carriel2/jelastic-demo.git /app/repo && cd /app/repo && docker-compose up -d
 
 success: |
-   Environment ready
+  Fullstack environment ready.
   
   **Acesses:**
   - API: [http://${env.domain}:8000](http://${env.domain}:8000)
