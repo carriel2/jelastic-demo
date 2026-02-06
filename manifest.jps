@@ -1,23 +1,22 @@
 type: install
 version: 1.7
-id: jelastic-observability-stack
-name: Full Stack Observability
+id: jelastic-observability-native
+name: Full Stack Obs (Native DB)
 homepage: https://github.com/carriel2/jelastic-demo
 
 nodes:
+  # 1.Native DB
   - nodeType: postgresql
     tag: 14.11-almalinux-9
     count: 1
     cloudlets: 8
     nodeGroup: sqldb
     displayName: Native PostgreSQL
-    # docker-compose password
     password: db_password_123
 
-
-nodes:
-  - cloudlets: 32
-    nodeType: docker
+  # 2. Docker Engine
+  - nodeType: docker
+    cloudlets: 32
     count: 1
     flexibleCloudlets: 64
     nodeGroup: cp
@@ -27,8 +26,6 @@ nodes:
     volumes:
       - /app
       - /var/run/docker.sock
-    links:
-      - sqldb:database
 
 onInstall:
   - deployStack
@@ -39,12 +36,8 @@ actions:
     cmd [cp]: yum install -y git && rm -rf /app/repo && git clone https://github.com/carriel2/jelastic-demo.git /app/repo && cd /app/repo && docker-compose up -d
 
 success: |
-  Fullstack environment ready.
-
-    **Structure:**
-    1. **Native PostgreSQL:** Managed by SaveinCloud (Backup/Updates).
-    2. **Docker Engine:** Running App, Prometheus, and Grafana.
+  Hybrid environmentr ready.
   
-  **Acesses:**
-    - API: [http://${env.domain}:8000](http://${env.domain}:8000)
-    - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
+  **Acessos:**
+  - API: [http://${env.domain}:8000](http://${env.domain}:8000)
+  - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
