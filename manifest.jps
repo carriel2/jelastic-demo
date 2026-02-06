@@ -39,7 +39,7 @@ actions:
       docker-compose up -d
 
 success: |
-  Full Stack environment ready
+   Environment ready
   
   **Acesses:**
   - API: [http://${env.domain}:8000](http://${env.domain}:8000)
