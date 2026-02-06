@@ -19,6 +19,7 @@ nodes:
     # Volumes for persistence
     volumes:
       - /app
+      - /var/run/docker.sock
 
 # Hooks to install Docker Compose and run
 onInstall:
@@ -29,27 +30,22 @@ actions:
   prepareEnvironment:
     user: root
     cmd [cp]: |
-      # Ensure that curl is already installed (jelastic/docker-ce uses CentOS).
       yum install -y curl
-      
-      # Ensure you are in the correct folder, delete it if it already exists, and ensure you have the correct permissions.
       rm -rf /app/repo
       mkdir -p /app/repo
-      chmod 777 /app/reto
-      
-      # Download the files from your GitHub (Compose + Configs)
-      echo "Downloading GitHub Archives"
+      chmod 777 /app/repo
       curl -fsSL ${baseUrl}/docker-compose.yml -o /app/repo/docker-compose.yml
       curl -fsSL ${baseUrl}/prometheus.yml -o /app/repo/prometheus.yml
-      
+      ls -la /app/repo
+
   startStack:
+    user: root
     cmd [cp]: |
       cd /app/repo
-      # Go up the stack (the -d is to run in the background)
       docker-compose up -d
-      
+
 success: |
-  Environment Provisioned.
+  Environment Provisioned successfully! 🚀
   
   **Accesses:**
   - API: [http://${env.domain}:8000](http://${env.domain}:8000)
