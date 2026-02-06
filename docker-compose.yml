@@ -15,14 +15,14 @@ services:
       - postgres
 
   postgres:
-    image: postgres:11-alpine
+    image: bitnami/postgresql:13
     restart: always
     environment:
-      POSTGRES_DB: app_db
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      - POSTGRESQL_USERNAME=user
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_DATABASE=app_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/bitnami/postgresql
 
   prometheus:
     image: prom/prometheus:latest
@@ -44,7 +44,6 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
-# ESSA PARTE ABAIXO É A QUE ESTAVA FALTANDO OU ERRADA:
 volumes:
   postgres_data:
   grafana_data:
