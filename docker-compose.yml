@@ -15,7 +15,7 @@ services:
       - postgres
 
   postgres:
-    image: postgres:13-alpine
+    image: postgres:11-alpine
     restart: always
     environment:
       POSTGRES_DB: app_db
