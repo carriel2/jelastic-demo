@@ -1,53 +1,50 @@
-version: "3.3"
+version: '3.3'
 
 services:
-  # Application Service
   app:
-    image: carriel2/jelastic-demo:latest # Using the Github Actions tag
+    image: carriel2/jelastic-demo:latest
     restart: always
     ports:
       - "8000:8000"
     environment:
       - DB_HOST=postgres
-      - DB_NAME=appdb
+      - DB_NAME=app_db
       - DB_USER=user
       - DB_PASS=password
     depends_on:
       - postgres
 
-  # PostgreSQL Service
   postgres:
     image: postgres:15-alpine
     restart: always
     environment:
-      - POSTGRES_DB=appdb
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      POSTGRES_DB: app_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
 
-    # Observcability Service: Prometheus
   prometheus:
     image: prom/prometheus:latest
     restart: always
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
+      - '--config.file=/etc/prometheus/prometheus.yml'
 
-    # Observcability Service: Grafana
   grafana:
     image: grafana/grafana:latest
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin # Default admin password (CHANGE THIS!!!)
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
 
+# ESSA PARTE ABAIXO É A QUE ESTAVA FALTANDO OU ERRADA:
 volumes:
   postgres_data:
   grafana_data:
