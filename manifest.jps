@@ -12,16 +12,12 @@ nodes:
     flexibleCloudlets: 64
     nodeGroup: cp
     displayName: App & Observability Stack
-
     docker:
       image: jelastic/docker-ce:latest
-    
-    # Volumes for persistence
     volumes:
       - /app
       - /var/run/docker.sock
 
-# Hooks to install Docker Compose and run
 onInstall:
   - prepareEnvironment
   - startStack
@@ -30,24 +26,21 @@ actions:
   prepareEnvironment:
     user: root
     cmd [cp]: |
-      yum install -y curl
-      rm -rf /app/repo
-      mkdir -p /app/repo
-      chmod 777 /app/repo
-      curl -fsSL ${baseUrl}/docker-compose.yml -o /app/repo/docker-compose.yml
-      curl -fsSL ${baseUrl}/prometheus.yml -o /app/repo/prometheus.yml
-      ls -la /app/repo
+      yum install -y curl && \
+      mkdir -p /app/repo && \
+      curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/docker-compose.yml -o /app/repo/docker-compose.yml && \
+      curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/prometheus.yml -o /app/repo/prometheus.yml
 
   startStack:
     user: root
     cmd [cp]: |
-      cd /app/repo
+      cd /app/repo && \
       docker-compose up -d
 
 success: |
-  Environment Provisioned successfully! 🚀
+  Ambiente Full Stack criado com sucesso! 🚀
   
-  **Accesses:**
+  **Acessos:**
   - API: [http://${env.domain}:8000](http://${env.domain}:8000)
   - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
   - Prometheus: [http://${env.domain}:9090](http://${env.domain}:9090)
