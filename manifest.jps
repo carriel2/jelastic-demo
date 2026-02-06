@@ -26,21 +26,22 @@ actions:
   prepareEnvironment:
     user: root
     cmd [cp]: |
-      yum install -y curl && \
-      mkdir -p /app/repo && \
-      curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/docker-compose.yml -o /app/repo/docker-compose.yml && \
+      yum install -y curl
+      rm -rf /app/repo
+      mkdir -p /app/repo
+      curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/docker-compose.yml -o /app/repo/docker-compose.yml
       curl -fsSL https://raw.githubusercontent.com/carriel2/jelastic-demo/main/prometheus.yml -o /app/repo/prometheus.yml
 
   startStack:
     user: root
     cmd [cp]: |
-      cd /app/repo && \
+      cd /app/repo
       docker-compose up -d
 
 success: |
-  Ambiente Full Stack criado com sucesso! 🚀
+  Full Stack environment ready
   
-  **Acessos:**
+  **Acesses:**
   - API: [http://${env.domain}:8000](http://${env.domain}:8000)
   - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
   - Prometheus: [http://${env.domain}:9090](http://${env.domain}:9090)
