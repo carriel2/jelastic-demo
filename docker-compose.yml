@@ -45,7 +45,6 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
-# ESSA PARTE ABAIXO É A QUE ESTAVA FALTANDO OU ERRADA:
 volumes:
   postgres_data:
   grafana_data:
