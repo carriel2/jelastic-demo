@@ -5,6 +5,17 @@ name: Full Stack Observability
 homepage: https://github.com/carriel2/jelastic-demo
 
 nodes:
+  - nodeType: postgresql
+    tag: 14.11-almalinux-9
+    count: 1
+    cloudlets: 8
+    nodeGroup: sqldb
+    displayName: Native PostgreSQL
+    # docker-compose password
+    password: db_password_123
+
+
+nodes:
   - cloudlets: 32
     nodeType: docker
     count: 1
@@ -16,6 +27,8 @@ nodes:
     volumes:
       - /app
       - /var/run/docker.sock
+    links:
+      - sqldb:database
 
 onInstall:
   - deployStack
@@ -27,8 +40,11 @@ actions:
 
 success: |
   Fullstack environment ready.
+
+    **Structure:**
+    1. **Native PostgreSQL:** Managed by SaveinCloud (Backup/Updates).
+    2. **Docker Engine:** Running App, Prometheus, and Grafana.
   
   **Acesses:**
-  - API: [http://${env.domain}:8000](http://${env.domain}:8000)
-  - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
-  - Prometheus: [http://${env.domain}:9090](http://${env.domain}:9090)
+    - API: [http://${env.domain}:8000](http://${env.domain}:8000)
+    - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
