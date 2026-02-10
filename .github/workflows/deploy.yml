@@ -27,7 +27,7 @@ jobs:
           echo "🔑 Autenticando..."
           /home/runner/jelastic/users/authentication/signin \
             --login "${{ secrets.JELASTIC_EMAIL }}" \
-            --token "${{ secrets.JELASTIC_PASSWORD }}" \
+            --password "${{ secrets.JELASTIC_PASSWORD }}" \
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
 
