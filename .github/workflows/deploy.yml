@@ -5,10 +5,6 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-env:
-  ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }} # Deve ser: carriel-observability
-  MANIFEST_URL: "https://raw.githubusercontent.com/carriel2/jelastic-demo/main/manifest.jps"
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,54 +16,76 @@ jobs:
         run: |
           curl -s ftp://ftp.jelastic.com/pub/cli/jelastic-cli-installer.sh | bash
 
-      - name: Deploy to SaveinCloud (All-in-One)
+      - name: Deploy (Tudo em Um)
+        env:
+          # Mapeando as secrets para variáveis locais do shell
+          J_EMAIL: ${{ secrets.JELASTIC_EMAIL }}
+          J_PASSWORD: ${{ secrets.JELASTIC_PASSWORD }}
+          J_URL: ${{ secrets.JELASTIC_API_URL }}
+          ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }} # Ex: carriel-observability
+          MANIFEST: "https://raw.githubusercontent.com/carriel2/jelastic-demo/main/manifest.jps"
+          REGION: "vz7"
         run: |
-          # 1. AUTENTICAÇÃO
-          # Como estamos no mesmo bloco, a sessão ficará salva para os comandos logo abaixo
-          echo "🔑 Autenticando..."
+          # 1. Validação Prévia (Pra não rodar cego)
+          if [ -z "$ENV_NAME" ]; then
+            echo "::error::A variável ENV_NAME está vazia! Verifique a Secret no GitHub."
+            exit 1
+          fi
+
+          echo "🚀 Iniciando Deploy para: $ENV_NAME"
+
+          # 2. Autenticação (Gera a sessão para este script)
           /home/runner/jelastic/users/authentication/signin \
-            --login "${{ secrets.JELASTIC_EMAIL }}" \
-            --password "${{ secrets.JELASTIC_PASSWORD }}" \
-            --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
+            --login "$J_EMAIL" \
+            --password "$J_PASSWORD" \
+            --platformUrl "$J_URL" \
             --silent true
 
-          # 2. VERIFICAÇÃO
-          echo "🔍 Verificando ambiente: ${{ env.ENV_NAME }}..."
+          # 3. Verificação Simples (Existe ou não?)
+          # Se o comando retornar "result": 0, o ambiente existe.
+          INFO=$(/home/runner/jelastic/environment/control/getenvinfo --envName "$ENV_NAME" --silent true)
           
-          # Tenta pegar informações. Se der erro 11, não existe. Se der 0, existe.
-          INFO_RESPONSE=$(/home/runner/jelastic/environment/control/getenvinfo --envName "${{ env.ENV_NAME }}" --silent true)
-          
-          # Usamos grep para ver se a resposta contém "result": 0 (Sucesso)
-          if echo "$INFO_RESPONSE" | grep -q '"result": 0'; then
-            echo "✅ Ambiente encontrado! Iniciando atualização..."
+          if echo "$INFO" | grep -q '"result": 0'; then
+            # ---------------------------------------------------------
+            # CENÁRIO A: AMBIENTE EXISTE -> FAZ UPDATE
+            # ---------------------------------------------------------
+            echo "✅ Ambiente encontrado! Atualizando..."
             
-            # 3. ATUALIZAÇÃO (Update)
-            UPDATE_RESPONSE=$(/home/runner/jelastic/environment/control/execcmdbygroup \
-              --envName "${{ env.ENV_NAME }}" \
+            UPDATE_LOG=$(/home/runner/jelastic/environment/control/execcmdbygroup \
+              --envName "$ENV_NAME" \
               --nodeGroup cp \
               --commandList '[{"command": "cd /app/repo && git pull && docker-compose up -d --build", "params": ""}]' \
               --silent true)
-              
-            echo "📄 Log de Atualização:"
-            echo "$UPDATE_RESPONSE"
             
-            # Valida se o comando rodou com sucesso
-            if echo "$UPDATE_RESPONSE" | grep -q '"result": 0'; then
-               echo "🚀 Deploy finalizado com sucesso!"
+            echo "$UPDATE_LOG"
+            
+            # Valida se o comando rodou
+            if echo "$UPDATE_LOG" | grep -q '"result": 0'; then
+               echo "🏆 Update concluído com sucesso!"
             else
-               echo "::error::Erro ao atualizar ambiente!"
+               echo "::error::Falha no Update!"
                exit 1
             fi
 
           else
-            echo "⚠️ Ambiente não encontrado (ou erro na busca). Iniciando criação do zero..."
-            echo "Debug da busca: $INFO_RESPONSE"
+            # ---------------------------------------------------------
+            # CENÁRIO B: AMBIENTE NÃO EXISTE (ou erro) -> CRIA DO ZERO
+            # ---------------------------------------------------------
+            echo "⚠️ Ambiente não encontrado. Criando..."
             
-            # 4. CRIAÇÃO (Create)
-            # Se o erro for de sessão (result 3), vai falhar aqui também, mas como autenticamos na linha 28, deve funcionar.
-            /home/runner/jelastic/marketplace/jps/install \
-              --jps "${{ env.MANIFEST_URL }}" \
-              --envName "${{ env.ENV_NAME }}" \
-              --settings "{\"jelastic_email\":\"${{ secrets.JELASTIC_EMAIL }}\"}" \
-              --silent true
+            CREATE_LOG=$(/home/runner/jelastic/marketplace/jps/install \
+              --jps "$MANIFEST" \
+              --envName "$ENV_NAME" \
+              --region "$REGION" \
+              --settings "{\"jelastic_email\":\"$J_EMAIL\"}" \
+              --silent true)
+              
+            echo "$CREATE_LOG"
+
+            if echo "$CREATE_LOG" | grep -q '"result": 0'; then
+               echo "🏆 Ambiente criado com sucesso!"
+            else
+               echo "::error::Falha na Criação!"
+               exit 1
+            fi
           fi
