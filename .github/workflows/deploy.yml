@@ -25,10 +25,10 @@ jobs:
         run: |
           /home/runner/jelastic/users/authentication/signin \
             --login "${{ secrets.JELASTIC_EMAIL }}" \
-            --password "${{ secrets.JELASTIC_PASSWORD }}" \
+            --token "${{ secrets.JELASTIC_PASSWORD }}" \
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
-            
+
       - name: Check Logic (List & Grep)
         id: check-env
         run: |
