@@ -15,7 +15,7 @@ nodes:
     password: db_password_123
 
   # 2. Docker Engine
-  - nodeType: docker
+  - nodeType: dockerengine
     tag: 27.5.1-almalinux-9
     cloudlets: 32
     count: 1
@@ -33,7 +33,7 @@ onInstall:
 actions:
   deployStack:
     user: root
-    cmd [cp]: yum install -y git && rm -rf /app/repo && git clone https://github.com/carriel2/jelastic-demo.git /app/repo && cd /app/repo && docker-compose up -d
+    cmd [cp]: dnf install -y git && rm -rf /app/repo && git clone https://github.com/carriel2/jelastic-demo.git /app/repo && cd /app/repo && docker compose up -d
 
 success: |
   Hybrid environmentr ready.
