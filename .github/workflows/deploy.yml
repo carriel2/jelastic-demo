@@ -29,25 +29,32 @@ jobs:
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
             
-      - name: Check Logic (List & JQ)
+      - name: Check Logic (GetEnvInfo)
         id: check-env
         run: |
-          RESPONSE=$(/home/runner/jelastic/environment/control/getenvs --silent true)
+          # Pergunta diretamente à API se o ambiente existe
+          echo "Verificando status do ambiente: ${{ env.ENV_NAME }}..."
           
-          # Verifica se o ambiente existe de forma segura
-          EXISTS=$(echo "$RESPONSE" | jq -r '.infos[]? | select(.env.envName=="${{ env.ENV_NAME }}") | .env.envName' | head -n 1)
+          RESPONSE=$(/home/runner/jelastic/environment/control/getenvinfo \
+            --envName "${{ env.ENV_NAME }}" \
+            --silent true)
           
-          if [ "$EXISTS" == "${{ env.ENV_NAME }}" ]; then
+          # Verifica se o result é 0 (Sucesso/Existe)
+          RESULT=$(echo "$RESPONSE" | jq '.result')
+          
+          if [ "$RESULT" == "0" ]; then
             echo "status=exists" >> $GITHUB_OUTPUT
-            echo "✅ Ambiente encontrado: ${{ env.ENV_NAME }}"
+            echo "✅ Ambiente encontrado e acessível!"
           else
             echo "status=missing" >> $GITHUB_OUTPUT
-            echo "❌ Ambiente não encontrado ou lista vazia. Status: missing"
+            echo "⚠️ Ambiente não encontrado ou erro de acesso (Result: $RESULT). Tentaremos criar."
+            echo "Debug Response: $RESPONSE"
           fi
 
       - name: Create Environment
         if: steps.check-env.outputs.status == 'missing'
         run: |
+          echo "Criando ambiente ${{ env.ENV_NAME }}..."
           /home/runner/jelastic/marketplace/jps/install \
             --jps "${{ env.MANIFEST_URL }}" \
             --envName "${{ env.ENV_NAME }}" \
@@ -58,8 +65,18 @@ jobs:
       - name: Update Environment
         if: steps.check-env.outputs.status == 'exists'
         run: |
-          /home/runner/jelastic/environment/control/execcmdbygroup \
+          echo "Atualizando ambiente ${{ env.ENV_NAME }}..."
+          
+          RESPONSE=$(/home/runner/jelastic/environment/control/execcmdbygroup \
             --envName "${{ env.ENV_NAME }}" \
             --nodeGroup cp \
-            --commandList '[{"command": "cd /app/repo && git pull && docker-compose up -d --build", "params": ""}]' \
-            --silent true
+            --commandList '[{"command": "cd /app/repo && git pull && docker-compose up -d --build", "params": ""}]')
+          
+          echo "$RESPONSE"
+          
+          if echo "$RESPONSE" | grep -q '"result": 0'; then
+             echo "✅ Deploy realizado com sucesso!"
+          else
+             echo "::error::Falha ao executar comandos no ambiente!"
+             exit 1
+          fi
