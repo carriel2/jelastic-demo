@@ -6,8 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }}
-  REGION: "vz7"
+  ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }} # Deve ser: carriel-observability
   MANIFEST_URL: "https://raw.githubusercontent.com/carriel2/jelastic-demo/main/manifest.jps"
 
 jobs:
@@ -20,52 +19,55 @@ jobs:
       - name: Install Jelastic CLI
         run: |
           curl -s ftp://ftp.jelastic.com/pub/cli/jelastic-cli-installer.sh | bash
-          
-      - name: Authenticate
+
+      - name: Deploy to SaveinCloud (All-in-One)
         run: |
+          # 1. AUTENTICAÇÃO
+          # Como estamos no mesmo bloco, a sessão ficará salva para os comandos logo abaixo
+          echo "🔑 Autenticando..."
           /home/runner/jelastic/users/authentication/signin \
             --login "${{ secrets.JELASTIC_EMAIL }}" \
             --token "${{ secrets.JELASTIC_PASSWORD }}" \
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
+
+          # 2. VERIFICAÇÃO
+          echo "🔍 Verificando ambiente: ${{ env.ENV_NAME }}..."
+          
+          # Tenta pegar informações. Se der erro 11, não existe. Se der 0, existe.
+          INFO_RESPONSE=$(/home/runner/jelastic/environment/control/getenvinfo --envName "${{ env.ENV_NAME }}" --silent true)
+          
+          # Usamos grep para ver se a resposta contém "result": 0 (Sucesso)
+          if echo "$INFO_RESPONSE" | grep -q '"result": 0'; then
+            echo "✅ Ambiente encontrado! Iniciando atualização..."
             
-      - name: Check Environment (Simples)
-        id: check-env
-        run: |
-          echo "Verificando se o ambiente ${{ env.ENV_NAME }} existe..."
-          
-          # Consulta apenas o ambiente específico
-          RESPONSE=$(/home/runner/jelastic/environment/control/getenvinfo --envName "${{ env.ENV_NAME }}" --silent true)
-          
-          echo "Resposta da API: $RESPONSE"
-          
-          # O grep verifica se a resposta contem "result": 0 (que significa SUCESSO na API da Jelastic)
-          if echo "$RESPONSE" | grep -q '"result": 0'; then
-            echo "action=update" >> $GITHUB_OUTPUT
-            echo "✅ Ambiente encontrado! Vamos atualizar."
+            # 3. ATUALIZAÇÃO (Update)
+            UPDATE_RESPONSE=$(/home/runner/jelastic/environment/control/execcmdbygroup \
+              --envName "${{ env.ENV_NAME }}" \
+              --nodeGroup cp \
+              --commandList '[{"command": "cd /app/repo && git pull && docker-compose up -d --build", "params": ""}]' \
+              --silent true)
+              
+            echo "📄 Log de Atualização:"
+            echo "$UPDATE_RESPONSE"
+            
+            # Valida se o comando rodou com sucesso
+            if echo "$UPDATE_RESPONSE" | grep -q '"result": 0'; then
+               echo "🚀 Deploy finalizado com sucesso!"
+            else
+               echo "::error::Erro ao atualizar ambiente!"
+               exit 1
+            fi
+
           else
-            echo "action=create" >> $GITHUB_OUTPUT
-            echo "⚠️ Ambiente não encontrado (ou erro). Vamos criar."
+            echo "⚠️ Ambiente não encontrado (ou erro na busca). Iniciando criação do zero..."
+            echo "Debug da busca: $INFO_RESPONSE"
+            
+            # 4. CRIAÇÃO (Create)
+            # Se o erro for de sessão (result 3), vai falhar aqui também, mas como autenticamos na linha 28, deve funcionar.
+            /home/runner/jelastic/marketplace/jps/install \
+              --jps "${{ env.MANIFEST_URL }}" \
+              --envName "${{ env.ENV_NAME }}" \
+              --settings "{\"jelastic_email\":\"${{ secrets.JELASTIC_EMAIL }}\"}" \
+              --silent true
           fi
-
-      - name: Create Environment
-        if: steps.check-env.outputs.action == 'create'
-        run: |
-          echo "Criando ambiente..."
-          /home/runner/jelastic/marketplace/jps/install \
-            --jps "${{ env.MANIFEST_URL }}" \
-            --envName "${{ env.ENV_NAME }}" \
-            --region "${{ env.REGION }}" \
-            --settings "{\"jelastic_email\":\"${{ secrets.JELASTIC_EMAIL }}\"}" \
-            --silent true
-
-      - name: Update Environment
-        if: steps.check-env.outputs.action == 'update'
-        run: |
-          echo "Atualizando ambiente..."
-          
-          /home/runner/jelastic/environment/control/execcmdbygroup \
-            --envName "${{ env.ENV_NAME }}" \
-            --nodeGroup cp \
-            --commandList '[{"command": "cd /app/repo && git pull && docker-compose up -d --build", "params": ""}]' \
-            --silent true
