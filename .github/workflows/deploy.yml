@@ -24,6 +24,7 @@ jobs:
 
       - name: Authenticate (Via Token)
         run: |
+          echo "n" | ~/jelastic/users/authentication/signin \
           ~/jelastic/users/authentication/signin \
             --login ${{ secrets.JELASTIC_EMAIL}} \
             --password ${{ secrets.JELASTIC_PASSWORD }} \
