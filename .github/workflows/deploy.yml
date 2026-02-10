@@ -29,32 +29,39 @@ jobs:
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
             
-      - name: Check Logic (GetEnvInfo)
+      - name: Debug & Check Environment
         id: check-env
         run: |
-          # Pergunta diretamente à API se o ambiente existe
-          echo "Verificando status do ambiente: ${{ env.ENV_NAME }}..."
+          # Remove espaços em branco acidentais da variável
+          TARGET_ENV=$(echo "${{ env.ENV_NAME }}" | tr -d ' ')
+          echo "🔍 Buscando pelo ambiente: [$TARGET_ENV]"
           
-          RESPONSE=$(/home/runner/jelastic/environment/control/getenvinfo \
-            --envName "${{ env.ENV_NAME }}" \
-            --silent true)
+          # Salva o JSON em arquivo para facilitar o debug
+          /home/runner/jelastic/environment/control/getenvs --silent true > env_list.json
           
-          # Verifica se o result é 0 (Sucesso/Existe)
-          RESULT=$(echo "$RESPONSE" | jq '.result')
+          # Usa JQ para buscar exatamente o envName dentro da lista .infos
+          # Retorna o status do ambiente se encontrar (1 = Running)
+          STATUS=$(cat env_list.json | jq -r --arg TARGET "$TARGET_ENV" '.infos[] | select(.env.envName == $TARGET) | .env.status')
           
-          if [ "$RESULT" == "0" ]; then
+          echo "📄 Status retornado pela API: $STATUS"
+          
+          if [ "$STATUS" == "1" ]; then
+            echo "✅ Ambiente encontrado e está rodando!"
             echo "status=exists" >> $GITHUB_OUTPUT
-            echo "✅ Ambiente encontrado e acessível!"
+          elif [ -n "$STATUS" ]; then
+             echo "⚠️ Ambiente encontrado, mas status é $STATUS (não está rodando 100%). Tentaremos atualizar mesmo assim."
+             echo "status=exists" >> $GITHUB_OUTPUT
           else
+            echo "❌ Ambiente NÃO encontrado na lista."
+            echo "Debug: Listando os nomes disponíveis na conta para conferência:"
+            cat env_list.json | jq -r '.infos[].env.envName'
             echo "status=missing" >> $GITHUB_OUTPUT
-            echo "⚠️ Ambiente não encontrado ou erro de acesso (Result: $RESULT). Tentaremos criar."
-            echo "Debug Response: $RESPONSE"
           fi
 
       - name: Create Environment
         if: steps.check-env.outputs.status == 'missing'
         run: |
-          echo "Criando ambiente ${{ env.ENV_NAME }}..."
+          echo "🚀 Criando ambiente ${{ env.ENV_NAME }}..."
           /home/runner/jelastic/marketplace/jps/install \
             --jps "${{ env.MANIFEST_URL }}" \
             --envName "${{ env.ENV_NAME }}" \
@@ -65,8 +72,9 @@ jobs:
       - name: Update Environment
         if: steps.check-env.outputs.status == 'exists'
         run: |
-          echo "Atualizando ambiente ${{ env.ENV_NAME }}..."
+          echo "🔄 Atualizando ambiente: ${{ env.ENV_NAME }} no nodeGroup: cp"
           
+          # Executa os comandos
           RESPONSE=$(/home/runner/jelastic/environment/control/execcmdbygroup \
             --envName "${{ env.ENV_NAME }}" \
             --nodeGroup cp \
@@ -74,9 +82,11 @@ jobs:
           
           echo "$RESPONSE"
           
+          # Verifica sucesso procurando result: 0 OU validando se não tem "error"
           if echo "$RESPONSE" | grep -q '"result": 0'; then
              echo "✅ Deploy realizado com sucesso!"
           else
              echo "::error::Falha ao executar comandos no ambiente!"
+             echo "Detalhe do erro: $RESPONSE"
              exit 1
           fi
