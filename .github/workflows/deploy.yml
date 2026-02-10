@@ -1,0 +1,69 @@
+name: Auto Deploy SaveinCloud
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # Pegando o nome do ambiente da Secret ou variável global
+  ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }}
+  MANIFEST_URL: "https://raw.githubusercontent.com/${{ github.repository }}/main/manifest.jps"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Jelastic CLI
+        run: |
+          curl -s ftp://ftp.jelastic.com/pub/cli/jelastic-cli-installer.sh | bash
+          echo "$HOME/jelastic" >> $GITHUB_PATH
+
+      - name: Authenticate (Via Token)
+        run: |
+          ~/jelastic/users/authentication/signin \
+            --login ${{ secrets.JELASTIC_API_TOKEN }} \
+            --platformUrl ${{ secrets.JELASTIC_HOSTER_URL }} \
+            --silent true
+
+      - name: Check Logic (List & Grep)
+        id: check-env
+        run: |
+          # Baixa lista de ambientes
+          ALL_ENVS=$(~/jelastic/environment/control/getenvs --silent true)
+          
+          # Verifica se o ambiente existe
+          if echo "$ALL_ENVS" | grep -q "${{ env.ENV_NAME }}"; then
+            echo "status=exists" >> $GITHUB_OUTPUT
+            echo "✅ Environment found. Updating..."
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+            echo " Environment not found. Creating..."
+          fi
+
+      # CENÁRIO 1: CRIAR DO ZERO (IaC)
+      - name: Create Environment
+        if: steps.check-env.outputs.status == 'missing'
+        run: |
+          ~/jelastic/marketplace/jps/install \
+            --jps "${{ env.MANIFEST_URL }}" \
+            --envName ${{ env.ENV_NAME }} \
+            --silent true
+
+      # CENÁRIO 2: ATUALIZAR EXISTENTE
+      - name: Update Environment
+        if: steps.check-env.outputs.status == 'exists'
+        run: |
+          ~/jelastic/environment/control/execcmdbygroup \
+            --envName ${{ env.ENV_NAME }} \
+            --nodeGroup cp \
+            --commandList '[
+              {
+                "command": "cd /app/repo && git pull && docker-compose up -d --build",
+                "params": ""
+              }
+            ]' \
+            --silent true
