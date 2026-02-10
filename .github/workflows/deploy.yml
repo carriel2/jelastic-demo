@@ -25,22 +25,25 @@ jobs:
         run: |
           /home/runner/jelastic/users/authentication/signin \
             --login "${{ secrets.JELASTIC_EMAIL }}" \
-            --password "${{ secrets.JELASTIC_PASSWORD }}" \
+            --token "${{ secrets.JELASTIC_PASSWORD }}" \
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
             
       - name: Check Logic (List & JQ)
         id: check-env
         run: |
-          # Obtém a lista e usa JQ para verificar se o envName existe no array de objetos
-          EXISTS=$(/home/runner/jelastic/environment/control/getenvs --silent true | jq -r '.infos[] | select(.env.envName=="${{ env.ENV_NAME }}") | .env.envName')
+          # Captura a saída completa para debug se necessário
+          RESPONSE=$(/home/runner/jelastic/environment/control/getenvs --silent true)
+          
+          # Verifica se o ambiente existe de forma segura
+          EXISTS=$(echo "$RESPONSE" | jq -r '.infos[]? | select(.env.envName=="${{ env.ENV_NAME }}") | .env.envName' | head -n 1)
           
           if [ "$EXISTS" == "${{ env.ENV_NAME }}" ]; then
             echo "status=exists" >> $GITHUB_OUTPUT
-            echo "Environment Found: ${{ env.ENV_NAME }}"
+            echo "✅ Ambiente encontrado: ${{ env.ENV_NAME }}"
           else
             echo "status=missing" >> $GITHUB_OUTPUT
-            echo "Environment not fount. Creating"
+            echo "❌ Ambiente não encontrado ou lista vazia. Status: missing"
           fi
 
       - name: Create Environment
@@ -48,15 +51,14 @@ jobs:
         run: |
           /home/runner/jelastic/marketplace/jps/install \
             --jps "${{ env.MANIFEST_URL }}" \
-            --envName ${{ env.ENV_NAME }} \
-            --region ${{ env.REGION }} \
-            --settings '{"jelastic_email":"${{ secrets.JELASTIC_EMAIL }}"}' \
+            --envName "${{ env.ENV_NAME }}" \
+            --region "${{ env.REGION }}" \
+            --settings "{\"jelastic_email\":\"${{ secrets.JELASTIC_EMAIL }}\"}" \
             --silent true
 
       - name: Update Environment
         if: steps.check-env.outputs.status == 'exists'
         run: |
-          # Removi as quebras de linha dentro do commandList para evitar erro de parse no shell
           /home/runner/jelastic/environment/control/execcmdbygroup \
             --envName "${{ env.ENV_NAME }}" \
             --nodeGroup cp \
