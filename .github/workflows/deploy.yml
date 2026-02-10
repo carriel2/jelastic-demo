@@ -22,8 +22,7 @@ jobs:
           curl -s ftp://ftp.jelastic.com/pub/cli/jelastic-cli-installer.sh | bash
           
       - name: Authenticate
-        run: |
-          run: echo "n" | /home/runner/jelastic/users/authentication/signin --login ${{ secrets.JELASTIC_EMAIL }} --password ${{ secrets.JELASTIC_PASSWORD }} --platformUrl ${{ secrets.JELASTIC_API_URL }} --silent true
+        run: echo "n" | /home/runner/jelastic/users/authentication/signin --login ${{ secrets.JELASTIC_EMAIL }} --password ${{ secrets.JELASTIC_PASSWORD }} --platformUrl ${{ secrets.JELASTIC_API_URL }} --silent true
 
       - name: Check Logic (List & Grep)
         id: check-env
