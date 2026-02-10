@@ -33,7 +33,7 @@ jobs:
 
           echo "Starting Deploy: $ENV_NAME"
 
-          # 2. Autenticating (Generate token and store it for subsequent commands)
+          # 2. Authenticating (Generate token and store it for subsequent commands)
           /home/runner/jelastic/users/authentication/signin \
             --login "$J_EMAIL" \
             --password "$J_PASSWORD" \

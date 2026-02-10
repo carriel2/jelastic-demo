@@ -38,6 +38,6 @@ actions:
 success: |
   Hybrid environment ready.
   
-  **Acessos:**
-  - API: [http://${env.domain}:8000](http://${env.domain}:8000)
-  - Grafana: [http://${env.domain}:3000](http://${env.domain}:3000) (User: admin / Pass: admin)
+  **Acesses:**
+  - API: (http://PublicIP:8000)
+  - Grafana: (http://PublicIP:3000) (User: admin / Pass: admin)
