@@ -2,8 +2,8 @@ name: Auto Deploy SaveinCloud
 
 on:
   push:
-    branches: [ "main" ] # Roda sempre que der push na main
-  workflow_dispatch: # Permite rodar manualmente se precisar
+    branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }}
@@ -20,45 +20,37 @@ jobs:
       - name: Install Jelastic CLI
         run: |
           curl -s ftp://ftp.jelastic.com/pub/cli/jelastic-cli-installer.sh | bash
-          echo "$HOME/jelastic" >> $GITHUB_PATH
-
+          
       - name: Authenticate
         run: |
-          ~/jelastic/users/authentication/signin \
-          echo "n" | ~/jelastic/users/authentication/signin \
-            --login ${{ secrets.JELASTIC_EMAIL }} \
-            --password ${{ secrets.JELASTIC_PASSWORD }} \
-            --platformUrl ${{ secrets.JELASTIC_API_URL }} \
-            --silent true
+          echo "n" | /home/runner/jelastic/users/authentication/signin --login ${{ secrets.JELASTIC_EMAIL }} --password ${{ secrets.JELASTIC_PASSWORD }} --platformUrl ${{ secrets.JELASTIC_API_URL }} --silent true
 
-      - name: Check Logic (Create or Update)
+      - name: Check Logic (List & Grep)
         id: check-env
         run: |
-          # Tenta pegar informações do ambiente
-          EXISTING_ENV=$(~/jelastic/environment/control/getenvinfo --envName ${{ env.ENV_NAME }} --silent || echo "NOT_FOUND")
-
-          if [[ "$EXISTING_ENV" == *"result\":11"* ]] || [[ "$EXISTING_ENV" == *"NOT_FOUND"* ]]; then
-            echo "status=missing" >> $GITHUB_OUTPUT
-            echo "Ambiente não encontrado. Vamos criar!"
-          else
+          ALL_ENVS=$(/home/runner/jelastic/environment/control/getenvs --silent true)
+          
+          if echo "$ALL_ENVS" | grep -q "${{ env.ENV_NAME }}"; then
             echo "status=exists" >> $GITHUB_OUTPUT
-            echo "Ambiente encontrado. Vamos atualizar!"
+            echo "✅ Ambiente encontrado na conta. Vamos atualizar!"
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+            echo "❌ Ambiente não encontrado. Vamos criar do zero!"
           fi
 
-      # CENÁRIO 1: O ambiente NÃO existe -> CRIA DO ZERO
       - name: Create Environment
         if: steps.check-env.outputs.status == 'missing'
         run: |
-          ~/jelastic/marketplace/jps/install \
+          /home/runner/jelastic/marketplace/jps/install \
             --jps "${{ env.MANIFEST_URL }}" \
             --envName ${{ env.ENV_NAME }} \
-            --settings '{"jelastic_email":"${{ secrets.JELASTIC_EMAIL }}"}'
+            --region ${{ env.REGION }} \
+            --settings '{"jelastic_email":"${{ secrets.JELASTIC_EMAIL }}"}' \
+            --silent true
 
-      # CENÁRIO 2: O ambiente JÁ existe -> ATUALIZA (Git Pull + Docker Up)
       - name: Update Environment
         if: steps.check-env.outputs.status == 'exists'
         run: |
-          # ATENÇÃO: Mudamos de 'execcmd' para 'execcmdbygroup'
           /home/runner/jelastic/environment/control/execcmdbygroup \
             --envName ${{ env.ENV_NAME }} \
             --nodeGroup cp \
