@@ -18,38 +18,37 @@ jobs:
 
       - name: Deploy (Tudo em Um)
         env:
-          # Mapeando as secrets para variáveis locais do shell
           J_EMAIL: ${{ secrets.JELASTIC_EMAIL }}
           J_PASSWORD: ${{ secrets.JELASTIC_PASSWORD }}
           J_URL: ${{ secrets.JELASTIC_API_URL }}
-          ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }} # Ex: carriel-observability
+          ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }} 
           MANIFEST: "https://raw.githubusercontent.com/carriel2/jelastic-demo/main/manifest.jps"
           REGION: "vz7"
         run: |
-          # 1. Validação Prévia (Pra não rodar cego)
+          # 1. Previous Validation (Check if ENV_NAME is set)
           if [ -z "$ENV_NAME" ]; then
-            echo "::error::A variável ENV_NAME está vazia! Verifique a Secret no GitHub."
+            echo "::error::ENV_NAME is not set. Please set the environment variable in GitHub Secrets."
             exit 1
           fi
 
-          echo "🚀 Iniciando Deploy para: $ENV_NAME"
+          echo "Starting Deploy: $ENV_NAME"
 
-          # 2. Autenticação (Gera a sessão para este script)
+          # 2. Autenticating (Generate token and store it for subsequent commands)
           /home/runner/jelastic/users/authentication/signin \
             --login "$J_EMAIL" \
             --password "$J_PASSWORD" \
             --platformUrl "$J_URL" \
             --silent true
 
-          # 3. Verificação Simples (Existe ou não?)
-          # Se o comando retornar "result": 0, o ambiente existe.
+          # 3. Validate if environment exists by trying to fetch its info.
+          # If the environment doesn't exist, the command will return an error which we can catch.
           INFO=$(/home/runner/jelastic/environment/control/getenvinfo --envName "$ENV_NAME" --silent true)
           
           if echo "$INFO" | grep -q '"result": 0'; then
             # ---------------------------------------------------------
-            # CENÁRIO A: AMBIENTE EXISTE -> FAZ UPDATE
+            # Scenario A: Environment exists -> Just update it
             # ---------------------------------------------------------
-            echo "✅ Ambiente encontrado! Atualizando..."
+            echo "Environment Found Updating..."
             
             UPDATE_LOG=$(/home/runner/jelastic/environment/control/execcmdbygroup \
               --envName "$ENV_NAME" \
@@ -59,19 +58,19 @@ jobs:
             
             echo "$UPDATE_LOG"
             
-            # Valida se o comando rodou
+            # Validate the update command result
             if echo "$UPDATE_LOG" | grep -q '"result": 0'; then
-               echo "🏆 Update concluído com sucesso!"
+               echo "Update Successful!"
             else
-               echo "::error::Falha no Update!"
+               echo "::error::Update Failed!"
                exit 1
             fi
 
           else
             # ---------------------------------------------------------
-            # CENÁRIO B: AMBIENTE NÃO EXISTE (ou erro) -> CRIA DO ZERO
+            # Scenario B: Environment NOT found -> Create it from scratch using the JPS manifest
             # ---------------------------------------------------------
-            echo "⚠️ Ambiente não encontrado. Criando..."
+            echo "Environment Not Found. Creating New Environment..."
             
             CREATE_LOG=$(/home/runner/jelastic/marketplace/jps/install \
               --jps "$MANIFEST" \
@@ -83,9 +82,9 @@ jobs:
             echo "$CREATE_LOG"
 
             if echo "$CREATE_LOG" | grep -q '"result": 0'; then
-               echo "🏆 Ambiente criado com sucesso!"
+               echo "Environment creation Successful!"
             else
-               echo "::error::Falha na Criação!"
+               echo "::error::Environment creation Failed!"
                exit 1
             fi
           fi
