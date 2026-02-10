@@ -26,7 +26,7 @@ jobs:
         run: |
           echo "n" | ~/jelastic/users/authentication/signin \
             --login ${{ secrets.JELASTIC_EMAIL }} \
-            --password ${{ secrets.JELASTC_PASSWORD }} \
+            --password ${{ secrets.JELASTC_TOKEN}} \
             --platformUrl ${{ secrets.JELASTIC_API_URL }} \
             --silent true
 
