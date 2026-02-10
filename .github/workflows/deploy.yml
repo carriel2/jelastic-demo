@@ -29,17 +29,18 @@ jobs:
             --platformUrl "${{ secrets.JELASTIC_API_URL }}" \
             --silent true
             
-      - name: Check Logic (List & Grep)
+      - name: Check Logic (List & JQ)
         id: check-env
         run: |
-          ALL_ENVS=$(/home/runner/jelastic/environment/control/getenvs --silent true)
+          # Obtém a lista e usa JQ para verificar se o envName existe no array de objetos
+          EXISTS=$(/home/runner/jelastic/environment/control/getenvs --silent true | jq -r '.infos[] | select(.env.envName=="${{ env.ENV_NAME }}") | .env.envName')
           
-          if echo "$ALL_ENVS" | grep -q "${{ env.ENV_NAME }}"; then
+          if [ "$EXISTS" == "${{ env.ENV_NAME }}" ]; then
             echo "status=exists" >> $GITHUB_OUTPUT
-            echo "✅ Ambiente encontrado na conta. Vamos atualizar!"
+            echo "Environment Found: ${{ env.ENV_NAME }}"
           else
             echo "status=missing" >> $GITHUB_OUTPUT
-            echo "❌ Ambiente não encontrado. Vamos criar do zero!"
+            echo "Environment not fount. Creating"
           fi
 
       - name: Create Environment
@@ -55,13 +56,9 @@ jobs:
       - name: Update Environment
         if: steps.check-env.outputs.status == 'exists'
         run: |
+          # Removi as quebras de linha dentro do commandList para evitar erro de parse no shell
           /home/runner/jelastic/environment/control/execcmdbygroup \
-            --envName ${{ env.ENV_NAME }} \
+            --envName "${{ env.ENV_NAME }}" \
             --nodeGroup cp \
-            --commandList '[
-              {
-                "command": "cd /app/repo && git pull && docker-compose up -d --build",
-                "params": ""
-              }
-            ]' \
+            --commandList '[{"command": "cd /app/repo && git pull && docker-compose up -d --build", "params": ""}]' \
             --silent true
