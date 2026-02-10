@@ -25,10 +25,9 @@ jobs:
       - name: Authenticate (Via Token)
         run: |
           echo "n" | ~/jelastic/users/authentication/signin \
+            --platformUrl ${{ secrets.JELASTIC_API_URL }} \
             --login ${{ secrets.JELASTIC_EMAIL }} \
             --password ${{ secrets.JELASTC_TOKEN}} \
-            --platformUrl ${{ secrets.JELASTIC_API_URL }} \
-            --silent true
 
       - name: Check Logic (List & Grep)
         id: check-env
