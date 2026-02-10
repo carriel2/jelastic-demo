@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ENV_NAME: ${{ secrets.JELASTIC_ENV_NAME }}
+  ENV_NAME: ${{ secrets.ENV_NAME }}
   REGION: "vz7"
   MANIFEST_URL: "https://raw.githubusercontent.com/carriel2/jelastic-demo/main/manifest.jps"
 
@@ -32,7 +32,6 @@ jobs:
       - name: Check Logic (List & JQ)
         id: check-env
         run: |
-          # Captura a saída completa para debug se necessário
           RESPONSE=$(/home/runner/jelastic/environment/control/getenvs --silent true)
           
           # Verifica se o ambiente existe de forma segura
