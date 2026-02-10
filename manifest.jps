@@ -22,11 +22,7 @@ nodes:
     flexibleCloudlets: 64
     nodeGroup: cp
     displayName: App & Observability Stack
-
     extip: true
-    
-    docker:
-      image: jelastic/docker-ce:latest
     volumes:
       - /app
       - /var/run/docker.sock
