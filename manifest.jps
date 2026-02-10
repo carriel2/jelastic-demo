@@ -16,6 +16,7 @@ nodes:
 
   # 2. Docker Engine
   - nodeType: docker
+    tag: 27.5.1-almalinux-9
     cloudlets: 32
     count: 1
     flexibleCloudlets: 64
