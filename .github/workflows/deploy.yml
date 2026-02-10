@@ -40,7 +40,7 @@ jobs:
           # Verifica se o ambiente existe
           if echo "$ALL_ENVS" | grep -q "${{ env.ENV_NAME }}"; then
             echo "status=exists" >> $GITHUB_OUTPUT
-            echo "✅ Environment found. Updating..."
+            echo " Environment found. Updating..."
           else
             echo "status=missing" >> $GITHUB_OUTPUT
             echo " Environment not found. Creating..."
