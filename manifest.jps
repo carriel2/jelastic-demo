@@ -36,7 +36,7 @@ actions:
     cmd [cp]: dnf install -y git && rm -rf /app/repo && git clone https://github.com/carriel2/jelastic-demo.git /app/repo && cd /app/repo && docker compose up -d
 
 success: |
-  Hybrid environmentr ready.
+  Hybrid environment ready.
   
   **Acessos:**
   - API: [http://${env.domain}:8000](http://${env.domain}:8000)
